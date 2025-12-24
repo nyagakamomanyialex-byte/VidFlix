@@ -59,10 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           data: { username: username || email.split('@')[0] },
+          emailRedirectTo: undefined,
         },
       });
 
       if (error) {
+        // More descriptive error for email confirmation issues
+        if (error.message.includes('email')) {
+          return { error: 'Please check Supabase Auth settings: Disable email confirmation and enable auto-confirmation' };
+        }
         return { error: error.message };
       }
 
