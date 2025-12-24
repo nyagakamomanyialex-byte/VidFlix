@@ -19,7 +19,7 @@ import { useAuth } from '../hooks/useAuth';
 import { uploadVideo, uploadThumbnail, createContent } from '../services/uploadService';
 import { colors, spacing, typography, borderRadius } from '../constants/theme';
 
-const CONTENT_TYPES = ['movie', 'series', 'podcast'] as const;
+const CONTENT_TYPES = ['movie', 'series', 'podcast', 'live'] as const;
 const GENRES = ['Action', 'Adventure', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Thriller', 'Documentary'];
 
 export default function UploadScreen() {
@@ -28,7 +28,7 @@ export default function UploadScreen() {
   const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [type, setType] = useState<'movie' | 'series' | 'podcast'>('movie');
+  const [type, setType] = useState<'movie' | 'series' | 'podcast' | 'live'>('movie');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [duration, setDuration] = useState('');
   const [videoFile, setVideoFile] = useState<string | null>(null);

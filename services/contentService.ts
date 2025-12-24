@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 export interface Content {
   id: string;
   title: string;
-  type: 'movie' | 'series' | 'podcast';
+  type: 'movie' | 'series' | 'podcast' | 'live';
   genre: string[];
   thumbnail: string;
   description: string;
@@ -70,7 +70,7 @@ export async function getContentByGenre(genre: string): Promise<{ data: Content[
   }
 }
 
-export async function getContentByType(type: 'movie' | 'series' | 'podcast'): Promise<{ data: Content[] | null; error: string | null }> {
+export async function getContentByType(type: 'movie' | 'series' | 'podcast' | 'live'): Promise<{ data: Content[] | null; error: string | null }> {
   try {
     const { data, error } = await supabase
       .from('content')

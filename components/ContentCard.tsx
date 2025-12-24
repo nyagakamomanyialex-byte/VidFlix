@@ -22,6 +22,12 @@ export function ContentCard({ item, isFavorite, onPress, onFavoritePress }: Cont
             style={styles.image}
             contentFit="cover"
           />
+          {item.type === 'live' && (
+            <View style={styles.liveBadge}>
+              <View style={styles.liveIndicator} />
+              <Text style={styles.liveText}>LIVE</Text>
+            </View>
+          )}
           {onFavoritePress && (
             <Pressable
               onPress={onFavoritePress}
@@ -68,6 +74,29 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  liveBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+    gap: 4,
+  },
+  liveIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.textPrimary,
+  },
+  liveText: {
+    fontSize: 10,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
   },
   favoriteButton: {
     position: 'absolute',

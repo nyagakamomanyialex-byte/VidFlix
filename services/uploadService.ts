@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 export interface UploadContentData {
   title: string;
-  type: 'movie' | 'series' | 'podcast';
+  type: 'movie' | 'series' | 'podcast' | 'live';
   genre: string[];
   description: string;
   duration?: string;

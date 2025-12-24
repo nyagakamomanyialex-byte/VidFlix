@@ -1,21 +1,42 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { getContentById } from '../services/contentService';
+import type { Content } from '../services/contentService';
 import { colors, spacing, typography, borderRadius } from '../constants/theme';
-
-const DEMO_VIDEO = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
 export default function PlayerScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [content, setContent] = useState<Content | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const player = useVideoPlayer(DEMO_VIDEO, (player) => {
-    player.loop = false;
+  useEffect(() => {
+    loadContent();
+  }, [params.id]);
+
+  const loadContent = async () => {
+    if (!params.id || typeof params.id !== 'string') {
+      setLoading(false);
+      return;
+    }
+
+    const { data, error } = await getContentById(params.id);
+    if (data) {
+      setContent(data);
+    }
+    setLoading(false);
+  };
+
+  const videoUrl = content?.video_url || 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+
+  const player = useVideoPlayer(videoUrl, (player) => {
+    player.loop = content?.type === 'live'; // Loop live streams
     player.play();
     setIsPlaying(true);
   });
@@ -28,6 +49,14 @@ export default function PlayerScreen() {
     }
     setIsPlaying(!isPlaying);
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -59,21 +88,37 @@ export default function PlayerScreen() {
             </View>
           )}
         </Pressable>
+        {content?.type === 'live' && (
+          <View style={styles.liveBadge}>
+            <View style={styles.liveIndicator} />
+            <Text style={styles.liveText}>LIVE</Text>
+          </View>
+        )}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{params.title || 'Video Player'}</Text>
+        <Text style={styles.title}>{content?.title || 'Video Player'}</Text>
 
-        <View style={styles.meta}>
-          <View style={styles.metaItem}>
-            <Ionicons name="star" size={16} color={colors.genreComedy} />
-            <Text style={styles.metaText}>8.5</Text>
+        {content && (
+          <View style={styles.meta}>
+            {content.rating && (
+              <>
+                <View style={styles.metaItem}>
+                  <Ionicons name="star" size={16} color={colors.genreComedy} />
+                  <Text style={styles.metaText}>{content.rating}</Text>
+                </View>
+                <Text style={styles.metaDot}>•</Text>
+              </>
+            )}
+            {content.year && (
+              <>
+                <Text style={styles.metaText}>{content.year}</Text>
+                <Text style={styles.metaDot}>•</Text>
+              </>
+            )}
+            {content.duration && <Text style={styles.metaText}>{content.duration}</Text>}
           </View>
-          <Text style={styles.metaDot}>•</Text>
-          <Text style={styles.metaText}>2023</Text>
-          <Text style={styles.metaDot}>•</Text>
-          <Text style={styles.metaText}>2h 15m</Text>
-        </View>
+        )}
 
         <View style={styles.actions}>
           <Pressable
@@ -103,29 +148,34 @@ export default function PlayerScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
-          <Text style={styles.description}>
-            Experience stunning visuals and captivating storytelling in this epic adventure. 
-            Join our heroes as they embark on a journey filled with wonder, danger, and discovery.
-          </Text>
-        </View>
+        {content?.description && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>About</Text>
+            <Text style={styles.description}>{content.description}</Text>
+          </View>
+        )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Details</Text>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Genre:</Text>
-            <Text style={styles.detailValue}>Action, Adventure, Fantasy</Text>
+        {content && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Details</Text>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Type:</Text>
+              <Text style={styles.detailValue}>
+                {content.type.charAt(0).toUpperCase() + content.type.slice(1)}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Genre:</Text>
+              <Text style={styles.detailValue}>{content.genre.join(', ')}</Text>
+            </View>
+            {content.language && content.language.length > 0 && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Language:</Text>
+                <Text style={styles.detailValue}>{content.language.join(', ')}</Text>
+              </View>
+            )}
           </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Language:</Text>
-            <Text style={styles.detailValue}>English, Hindi</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Director:</Text>
-            <Text style={styles.detailValue}>Demo Director</Text>
-          </View>
-        </View>
+        )}
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -136,6 +186,12 @@ export default function PlayerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: colors.background,
   },
   playerContainer: {
@@ -160,6 +216,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  liveBadge: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    gap: spacing.xs,
+  },
+  liveIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.textPrimary,
+  },
+  liveText: {
+    fontSize: typography.bodySmall,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
   },
   content: {
     flex: 1,

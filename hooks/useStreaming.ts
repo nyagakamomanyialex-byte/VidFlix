@@ -4,6 +4,7 @@ import * as contentService from '../services/contentService';
 import { Content } from '../services/contentService';
 
 export const genres = [
+  { id: '0', name: 'Live', color: '#EF4444' },
   { id: '1', name: 'Action', color: '#0EA5E9' },
   { id: '2', name: 'Adventure', color: '#EF4444' },
   { id: '3', name: 'Comedy', color: '#F59E0B' },
@@ -54,6 +55,7 @@ export function useStreaming() {
 
   const getFilteredContent = (): Content[] => {
     if (selectedGenre === 'All') return allContent;
+    if (selectedGenre === 'Live') return allContent.filter((item) => item.type === 'live');
     return allContent.filter((item) => item.genre.includes(selectedGenre));
   };
 
@@ -82,7 +84,7 @@ export function useStreaming() {
     );
   };
 
-  const getContentByType = (type: 'movie' | 'series' | 'podcast'): Content[] => {
+  const getContentByType = (type: 'movie' | 'series' | 'podcast' | 'live'): Content[] => {
     return allContent.filter((c) => c.type === type);
   };
 
