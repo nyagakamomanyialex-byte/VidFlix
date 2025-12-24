@@ -1,33 +1,51 @@
 import { useState, useEffect } from 'react';
-import { 
-  Content, 
-  mockContent, 
-  getFeaturedContent, 
-  getContentByGenre,
-  getContentByType,
-  searchContent,
-  genres 
-} from '../services/mockStreamingService';
+import { supabase } from '../lib/supabase';
+import * as contentService from '../services/contentService';
+import { Content } from '../services/contentService';
+
+export const genres = [
+  { id: '1', name: 'Action', color: '#0EA5E9' },
+  { id: '2', name: 'Adventure', color: '#EF4444' },
+  { id: '3', name: 'Comedy', color: '#F59E0B' },
+  { id: '4', name: 'Drama', color: '#10B981' },
+  { id: '5', name: 'Horror', color: '#8B5CF6' },
+  { id: '6', name: 'Sci-Fi', color: '#06B6D4' },
+];
 
 export function useStreaming() {
   const [allContent, setAllContent] = useState<Content[]>([]);
   const [featuredContent, setFeaturedContent] = useState<Content[]>([]);
-  const [selectedGenre, setSelectedGenre] = useState<string>('All');
+  const [selectedGenre, setSelectedGenre] = useState('All');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadContent();
   }, []);
 
-  const loadContent = () => {
+  const loadContent = async () => {
     setIsLoading(true);
-    // Simulate API delay
-    setTimeout(() => {
-      setAllContent(mockContent);
-      setFeaturedContent(getFeaturedContent());
-      setIsLoading(false);
-    }, 500);
+    setError(null);
+
+    const [allContentResult, featuredResult] = await Promise.all([
+      contentService.getAllContent(),
+      contentService.getFeaturedContent(),
+    ]);
+
+    if (allContentResult.error) {
+      setError(allContentResult.error);
+    } else {
+      setAllContent(allContentResult.data || []);
+    }
+
+    if (featuredResult.error) {
+      setError(featuredResult.error);
+    } else {
+      setFeaturedContent(featuredResult.data || []);
+    }
+
+    setIsLoading(false);
   };
 
   const filterByGenre = (genre: string) => {
@@ -35,13 +53,14 @@ export function useStreaming() {
   };
 
   const getFilteredContent = (): Content[] => {
-    return getContentByGenre(selectedGenre);
+    if (selectedGenre === 'All') return allContent;
+    return allContent.filter((item) => item.genre.includes(selectedGenre));
   };
 
   const toggleFavorite = (contentId: string) => {
-    setFavorites(prev => 
-      prev.includes(contentId) 
-        ? prev.filter(id => id !== contentId)
+    setFavorites((prev) =>
+      prev.includes(contentId)
+        ? prev.filter((id) => id !== contentId)
         : [...prev, contentId]
     );
   };
@@ -51,7 +70,20 @@ export function useStreaming() {
   };
 
   const getFavorites = (): Content[] => {
-    return allContent.filter(c => favorites.includes(c.id));
+    return allContent.filter((item) => favorites.includes(item.id));
+  };
+
+  const searchContent = (query: string): Content[] => {
+    const lowercaseQuery = query.toLowerCase();
+    return allContent.filter((c) =>
+      c.title.toLowerCase().includes(lowercaseQuery) ||
+      c.description.toLowerCase().includes(lowercaseQuery) ||
+      c.genre.some((g) => g.toLowerCase().includes(lowercaseQuery))
+    );
+  };
+
+  const getContentByType = (type: 'movie' | 'series' | 'podcast'): Content[] => {
+    return allContent.filter((c) => c.type === type);
   };
 
   return {
@@ -60,6 +92,7 @@ export function useStreaming() {
     selectedGenre,
     genres,
     isLoading,
+    error,
     filterByGenre,
     getFilteredContent,
     toggleFavorite,
@@ -67,5 +100,6 @@ export function useStreaming() {
     getFavorites,
     getContentByType,
     searchContent,
+    refreshContent: loadContent,
   };
 }
