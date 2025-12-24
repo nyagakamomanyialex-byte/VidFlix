@@ -27,7 +27,9 @@ export const colors = {
   
   // Status
   success: '#10B981',
+  successBackground: 'rgba(16, 185, 129, 0.1)',
   error: '#EF4444',
+  errorBackground: 'rgba(239, 68, 68, 0.1)',
   warning: '#F59E0B',
 };
 

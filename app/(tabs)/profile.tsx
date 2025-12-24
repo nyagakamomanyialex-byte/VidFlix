@@ -1,7 +1,9 @@
-import React from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../hooks/useAuth';
 import { colors, spacing, typography, borderRadius } from '../../constants/theme';
 
 interface MenuItemProps {
@@ -30,6 +32,33 @@ function MenuItem({ icon, title, onPress, showArrow = true }: MenuItemProps) {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            setLoggingOut(true);
+            const { error } = await signOut();
+            setLoggingOut(false);
+            if (error) {
+              Alert.alert('Error', error);
+            } else {
+              router.replace('/login');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -42,8 +71,21 @@ export default function ProfileScreen() {
           <View style={styles.avatar}>
             <Ionicons name="person" size={48} color={colors.textPrimary} />
           </View>
-          <Text style={styles.userName}>Guest User</Text>
-          <Text style={styles.userEmail}>guest@vidflix.com</Text>
+          <Text style={styles.userName}>
+            {user?.user_metadata?.username || user?.email?.split('@')[0] || 'Guest User'}
+          </Text>
+          <Text style={styles.userEmail}>{user?.email || 'Not logged in'}</Text>
+          {!user && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.loginButton,
+                pressed && styles.loginButtonPressed,
+              ]}
+              onPress={() => router.push('/login')}
+            >
+              <Text style={styles.loginButtonText}>Sign In</Text>
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -75,6 +117,13 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Content</Text>
           <View style={styles.menuGroup}>
+            {user && (
+              <MenuItem
+                icon="cloud-upload-outline"
+                title="Upload Content"
+                onPress={() => router.push('/upload')}
+              />
+            )}
             <MenuItem
               icon="download-outline"
               title="Downloads"
@@ -119,16 +168,22 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.logoutButton,
-            pressed && styles.logoutButtonPressed,
-          ]}
-          onPress={() => {}}
-        >
-          <Ionicons name="log-out-outline" size={20} color={colors.primary} />
-          <Text style={styles.logoutText}>Log Out</Text>
-        </Pressable>
+        {user && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.logoutButton,
+              pressed && styles.logoutButtonPressed,
+              loggingOut && styles.logoutButtonDisabled,
+            ]}
+            onPress={handleLogout}
+            disabled={loggingOut}
+          >
+            <Ionicons name="log-out-outline" size={20} color={colors.primary} />
+            <Text style={styles.logoutText}>
+              {loggingOut ? 'Logging out...' : 'Log Out'}
+            </Text>
+          </Pressable>
+        )}
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -235,6 +290,24 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: typography.semibold,
     color: colors.primary,
+  },
+  logoutButtonDisabled: {
+    opacity: 0.6,
+  },
+  loginButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.md,
+  },
+  loginButtonPressed: {
+    opacity: 0.8,
+  },
+  loginButtonText: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
   },
   bottomSpacing: {
     height: spacing.xxl,
